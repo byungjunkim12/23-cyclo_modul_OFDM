@@ -1,5 +1,4 @@
 function CAF = csFeat(inputIQ, N, tauMax, lenCP_est, N_hop, tauHop)
-
 if ~exist('N_hop', 'var')
     N_hop = 1;
 end
