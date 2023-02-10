@@ -1,9 +1,9 @@
-function CAF = csFeat(inputIQ, FFTsize, tau, lenCPest)
+function CAF = csFeat(inputIQ, FFTsize, tau, CPlenEst)
 
-indexMat = (1:lenCPest)' + (0:(numel(inputIQ)-lenCPest));
+indexMat = (1:CPlenEst)' + (0:(numel(inputIQ)-CPlenEst));
 inputMat = inputIQ(indexMat);
 
-if lenCPest == 1
+if CPlenEst == 1
     inputCorr = inputMat(1:end-tau) .* conj(inputMat(1+tau:end));
 else
     inputCorr = (sum(inputMat(:, 1:end-tau) .* conj(inputMat(:, 1+tau:end)), 1));
