@@ -1,4 +1,5 @@
 *.asv
 *.pyc
+result/
 
 .DS_Store
