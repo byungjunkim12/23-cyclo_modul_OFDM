@@ -4,34 +4,35 @@
 
 % SCF parameters
 % filename = '/tmp/NRDL/SCS_60/NRDL_Normal_64qam/NRDL_Normal_64_0_20_20_2_2.32cf';
-folder = '/tmp/OFDM_param/NRDL/SCS_60/';
-SNRvector = 0:2:20;
+folder = '/tmp/OFDM_test/nUser_9/';
+SNRvector = 100;
 FFTSize = 4096;
 tau_vec = [64, 256, 333, 667, 1333];
 est_len = 8;
-Nmax = 25;
-% freqBinCell = [52, 58]; % wlanHT
+% Nmax = 25;
+freqBinCell = [52, 58]; % wlanHT
 % freqBinCell = [14, 15, 16]; % wlanHE
-freqBinCell = [11, 13];
+% freqBinCell = [11, 13];
 
 %% Load the signal
 corrCount_nSubC = zeros(1, numel(SNRvector));
-% corrCount_CPlen = zeros(numel(freqBinCell), numel(SNRvector));
+corrCount_CPlen = zeros(numel(freqBinCell), numel(SNRvector));
 
 folderList = dir(folder);
-for folderIndex = 3 : 6
+for folderIndex = 3 : 3
     folder_modul = folder + folderList(folderIndex).name + '/';
     files = dir(folder_modul + '*.32cf');
     for fileIndex = 1 : numel(files)
         filename = files(fileIndex).name;
         filenameDigits = regexp(filename, '\d*', 'match');
         fileSNR = str2double(filenameDigits{3});
-        SNRIndex = (fileSNR/2)+1;
+%         SNRIndex = (fileSNR/2)+1;
+        SNRIndex = 1;
 
         inputIQ = read_complex_binary(folder_modul + filename);
-%         inputIQ = inputIQ(1201:end);
-        start_index = randi(20001);
-        inputIQ = inputIQ(start_index:(start_index+20000-1));
+        inputIQ = inputIQ(1201:end);
+%         start_index = randi(20001);
+%         inputIQ = inputIQ(start_index:(start_index+20000-1));
 
         % tic;
         CAF_DC = csFeat_DC(inputIQ, tau_vec, est_len);
