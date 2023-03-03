@@ -8,7 +8,6 @@ def getOFDM_param(inputIQ, protocolList, tauVec, nFFT, CPLenList):
 
     freqBinList = np.zeros((len(protocolList),), dtype=object)
     for i, protocol in enumerate(protocolList):
-        print(protocol, CPLenList[i], (tauVec[i] + (np.asarray(CPLenList[i]) * samplingRate / NRDLTXRate)))
         if "wlan" in protocol:
             freqBinList[i] = np.round(nFFT / (tauVec[i] + CPLenList[i])).astype(int)
         elif "NRDLa" in protocol:

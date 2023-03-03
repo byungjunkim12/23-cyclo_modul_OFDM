@@ -14,8 +14,8 @@ from utilities import *
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inputJson", help="input JSON filename")
     parser.add_argument("-c", "--classes", help="class JSON filename")
+    parser.add_argument("-i", "--inputJson", help="input JSON filename")
     args = parser.parse_args()
     inputJsonFileName = args.inputJson
     classesJsonFileName = args.classes
@@ -29,7 +29,7 @@ def main():
     SNRVec = np.asarray(classesJsonContent["SNRVec"])
     tauVec = np.asarray(classesJsonContent["tauVec"])
     protocolList = np.asarray(classesJsonContent["protocolList"])
-    CPOptList = np.asarray(classesJsonContent["CPOptList"])
+    CPOptList = np.asarray(classesJsonContent["CPOptList"], dtype=object)
     for i, CPOptElem in enumerate(CPOptList):
         CPOptList[i] = np.asarray(CPOptElem, dtype=object)
     CPLenList = np.asarray(classesJsonContent["CPLenList"], dtype=object)
@@ -46,7 +46,7 @@ def main():
     fileCount = np.zeros((len(protocolList),), dtype=object)
     corrNSubCCount = np.zeros((len(protocolList),), dtype=object)
     corrCPLenCount = np.zeros((len(protocolList),), dtype=object)
-    prevSaveFileName = "../result/start.npy"
+
     for i, protocol in enumerate(protocolList):
         fileCount[i] = np.zeros((len(SNRVec), CPOptList[i].shape[0]))
         corrNSubCCount[i] = np.zeros((len(SNRVec), ))
@@ -57,8 +57,11 @@ def main():
     countSave = np.concatenate((np.expand_dims(fileCount, axis=0),\
             np.expand_dims(corrNSubCCount, axis=0),\
             np.expand_dims(corrCPLenCount, axis=0)), axis=0)
-    with open(prevSaveFileName, 'wb') as saveFile:
-        np.save(saveFile, countSave)
+
+    saveFileNamePrefix = getDateYYMMDD_HHMMSS()
+    saveFileName = "../result/" + saveFileNamePrefix + ".npy"
+    saveLogFileName = "../result/log/" + saveFileNamePrefix + ".txt"
+    print("Filename: ", saveFileNamePrefix)
 
     for subFolder in os.walk(dataPath):
         startTime = time.time()
@@ -66,7 +69,7 @@ def main():
         if len(dirFilenameList) == 0:
             continue
 
-        print(subFolder[0].split("/")[-2] + "_" + subFolder[0].split("/")[-1])
+        print(subFolder[0].split("/")[-2] + "/" + subFolder[0].split("/")[-1])
 
         for dirFileName in dirFilenameList:
             fileName = dirFileName.split("/")[-1][:-5]
@@ -98,21 +101,17 @@ def main():
             if nSubC_Est == tauVec[fileProtocolIndex] and CPLenEst == fileCPLen:
                 corrCPLenCount[fileProtocolIndex][fileSNRIndex, fileCPOptIndex] += 1
         
-        # print(fileCount)
-        # print(corrNSubCCount)
-        # print(corrCPLenCount)
         print('running time: %s sec' %(time.time() - startTime))
 
         countSave = np.concatenate((np.expand_dims(fileCount, axis=0),\
             np.expand_dims(corrNSubCCount, axis=0),\
             np.expand_dims(corrCPLenCount, axis=0)), axis=0)
         print(countSave)
-        saveFileName = '../result/' + subFolder[0].split("/")[-2] + "_" +\
-            subFolder[0].split("/")[-1] + ".npy"
-        os.rename(prevSaveFileName, saveFileName)
         with open(saveFileName, 'wb') as saveFile:
             np.save(saveFile, countSave)
-        prevSaveFileName = saveFileName
+        with open(saveLogFileName, 'a') as saveLogFile:
+            saveLogFile.write(subFolder[0].split("/")[-2] + "/" + subFolder[0].split("/")[-1])
+            saveLogFile.write('\n')
 
 if __name__ == "__main__":
     main()
