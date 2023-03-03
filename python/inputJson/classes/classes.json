@@ -1,0 +1,7 @@
+{
+    "SNRVec": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+    "tauVec": [64, 256, 333, 667, 1333],
+    "protocolList": ["wlanHT", "wlanHE", "NRDLa", "NRDLb", "NRDLc"],
+    "CPLenList": [["Extended", "Normal"], ["Extended", "Medium", "Normal"], ["Extended", "Normal"], ["Normal"], ["Normal"]],
+    "symLenList": [[80, 72], [320, 288, 272], [640, 548], [1096], [2192]]
+}

@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import signal
 
 def getOFDM_param(inputIQ):
     FFTsize = 4096

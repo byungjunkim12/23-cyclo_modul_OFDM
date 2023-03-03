@@ -19,3 +19,4 @@ def estCFO(inputIQ, nSubC, lenCP, firstIndexSym, samplingRate):
     CFOest = np.mean(phDiffSym) / (2*math.pi * nSubC) * samplingRate
 
     return CFOest
+

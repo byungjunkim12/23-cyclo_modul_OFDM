@@ -8,31 +8,36 @@ import time
 import os
 from glob import glob
 
-from getOFDM_param import *
+from OFDMparam.util_OFDMparam import *
+from CFOcorr.util_CFOcorr import *
+
 sys.path.append('../')
 from utilities import *
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inputJson", help="input JSON filename")
+    parser.add_argument("-c", "--classes", help="class JSON filename")
     args = parser.parse_args()
     inputJsonFileName = args.inputJson
+    classesJsonFileName = args.classes
 
-    inputJsonFile = open("../inputJson/" + inputJsonFileName + ".json")
+    inputJsonFile = open("./inputJson/" + inputJsonFileName + ".json")
+    classesJsonFile = open("./inputJson/classes/" + classesJsonFileName + ".json")
+    classesJsonContent = json.load(classesJsonFile)
+
     dataPath = json.load(inputJsonFile)["data_path"]
+
+    SNRVec = np.asarray(classesJsonContent["SNRVec"])
+    tauVec = np.asarray(classesJsonContent["tauVec"])
+    protocolList = np.asarray(classesJsonContent["protocolList"])
+    CPLenList = np.asarray(classesJsonContent["CPLenList"])
+    for i, CPLenElem in enumerate(CPLenList):
+        CPLenList[i] = np.asarray(CPLenElem, dtype=object)
+    symLenList = np.asarray(classesJsonContent["symLenList"], dtype=object)
+    
     inputJsonFile.close()
-    # dirFilenameList = glob(data_path + '/*.32cf')
-
-    SNRVec = np.arange(0, 21, 2, dtype=int)
-    # SNRVec = np.arange(100, 101, 2, dtype=int)
-    tauVec = np.array([64, 256, 333, 667, 1333])
-    protocolList = np.array(['wlanHT', 'wlanHE', 'NRDLa', 'NRDLb', 'NRDLc'])
-
-    CPLenList = np.array([np.array(['Extended', 'Normal']),\
-        np.array(['Extended', 'Medium', 'Normal']),\
-        np.array(['Extended', 'Normal']),\
-        np.array(['Normal']), np.array(['Normal'])], dtype=object)
-    symLenList = np.array([[80, 72], [320, 288, 272], [640, 548], [1096], [2192]], dtype=object)
+    classesJsonFile.close()
     
     preambleLen = 1200
     maxInputLen = 20000
@@ -40,7 +45,7 @@ def main():
     fileCount = np.zeros((len(protocolList),), dtype=object)
     corrNSubCCount = np.zeros((len(protocolList),), dtype=object)
     corrSymLenCount = np.zeros((len(protocolList),), dtype=object)
-    prevSaveFileName = "../result/start.npy"
+    prevSaveFileName = "./result/start.npy"
     for i in range(len(protocolList)):
         fileCount[i] = np.zeros((len(SNRVec), CPLenList[i].shape[0]))
         corrNSubCCount[i] = np.zeros((len(SNRVec), ))
@@ -82,13 +87,13 @@ def main():
                 randStartIndex = random.randint(0, inputIQ.shape[0] - maxInputLen)
                 inputIQ = inputIQ[randStartIndex : randStartIndex + maxInputLen]
 
-            nSubC_Est, symLenEst = getOFDM_param(inputIQ)
+            # nSubC_Est, symLenEst = getOFDM_param(inputIQ)
             
             fileCount[fileProtocolIndex][fileSNRIndex, fileSymLenIndex] += 1
-            if nSubC_Est == tauVec[fileProtocolIndex]:
-                corrNSubCCount[fileProtocolIndex][fileSNRIndex] += 1
-            if nSubC_Est == tauVec[fileProtocolIndex] and symLenEst == fileSymLen:
-                corrSymLenCount[fileProtocolIndex][fileSNRIndex, fileSymLenIndex] += 1
+            # if nSubC_Est == tauVec[fileProtocolIndex]:
+            #     corrNSubCCount[fileProtocolIndex][fileSNRIndex] += 1
+            # if nSubC_Est == tauVec[fileProtocolIndex] and symLenEst == fileSymLen:
+            #     corrSymLenCount[fileProtocolIndex][fileSNRIndex, fileSymLenIndex] += 1
         
         # print(fileCount)
         # print(corrNSubCCount)
@@ -99,7 +104,7 @@ def main():
             np.expand_dims(corrNSubCCount, axis=0),\
             np.expand_dims(corrSymLenCount, axis=0)), axis=0)
         print(countSave)
-        saveFileName = '../result/' + subFolder[0].split("/")[-2] + "_" +\
+        saveFileName = './result/' + subFolder[0].split("/")[-2] + "_" +\
             subFolder[0].split("/")[-1] + ".npy"
         os.rename(prevSaveFileName, saveFileName)
         with open(saveFileName, 'wb') as saveFile:
