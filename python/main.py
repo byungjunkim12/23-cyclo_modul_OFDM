@@ -47,11 +47,9 @@ def main():
     samplingRate = 20e6
     NRDLTXRate = 30.72e6
 
-    freqBinList = np.zeros((len(protocolList),), dtype=object)
     fileCount = np.zeros((len(protocolList),), dtype=object)
     corrNSubCCount = np.zeros((len(protocolList),), dtype=object)
     corrCPLenCount = np.zeros((len(protocolList),), dtype=object)
-    prevSaveFileName = "../result/start.npy"
     for i, protocol in enumerate(protocolList):
         fileCount[i] = np.zeros((len(SNRVec), CPOptList[i].shape[0]))
         corrNSubCCount[i] = np.zeros((len(SNRVec), ))
@@ -62,8 +60,12 @@ def main():
     countSave = np.concatenate((np.expand_dims(fileCount, axis=0),\
             np.expand_dims(corrNSubCCount, axis=0),\
             np.expand_dims(corrCPLenCount, axis=0)), axis=0)
-    with open(prevSaveFileName, 'wb') as saveFile:
-        np.save(saveFile, countSave)
+
+    saveFileNamePrefix = getDateYYMMDD_HHMMSS()
+    saveFileName = "./result/" + saveFileNamePrefix + ".npy"
+    saveLogFileName = "./result/log/" + saveFileNamePrefix + ".txt"
+    print("Filename: ", saveFileNamePrefix)
+
 
     for subFolder in os.walk(dataPath):
         startTime = time.time()
@@ -96,8 +98,8 @@ def main():
                 inputIQ = inputIQ[randStartIndex : randStartIndex + maxInputLen]
 
             nSubC_Est, CPLenEst = getOFDM_param(inputIQ, protocolList, tauVec, nFFT, CPLenList)
-            firstIndexSym = findFirstIndex(inputIQ, nSubC_Est, CPLenEst)
-            CFOest = estCFO(inputIQ, nSubC_Est, CPLenEst, firstIndexSym, samplingRate)
+            CFOest = estCFO(inputIQ, nSubC_Est, CPLenEst,\
+                findFirstIndex(inputIQ, nSubC_Est, CPLenEst), samplingRate)
             # print(CFOest)
             
             fileCount[fileProtocolIndex][fileSNRIndex, fileCPOptIndex] += 1
@@ -115,12 +117,11 @@ def main():
             np.expand_dims(corrNSubCCount, axis=0),\
             np.expand_dims(corrCPLenCount, axis=0)), axis=0)
         print(countSave)
-        saveFileName = './result/' + subFolder[0].split("/")[-2] + "_" +\
-            subFolder[0].split("/")[-1] + ".npy"
-        os.rename(prevSaveFileName, saveFileName)
         with open(saveFileName, 'wb') as saveFile:
             np.save(saveFile, countSave)
-        prevSaveFileName = saveFileName
+        with open(saveLogFileName, 'a') as saveLogFile:
+            saveLogFile.write(subFolder[0].split("/")[-2] + "/" + subFolder[0].split("/")[-1])
+            saveLogFile.write('\n')
 
 if __name__ == "__main__":
     main()
