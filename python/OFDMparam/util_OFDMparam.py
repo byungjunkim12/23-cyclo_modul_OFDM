@@ -1,18 +1,19 @@
 import numpy as np
 
-def getOFDM_param(inputIQ):
+def getOFDM_param(inputIQ, tauVec, freqBinList, CPLenList):
     FFTsize = 4096
-    tauVec = np.array([64, 256, 333, 667, 1333])
-    freqBinList = [[51, 57], [13, 14, 15], [10, 12], [0], [0]]
-    symLenList = np.array([[80, 72], [320, 288, 272], [640, 548], [1096], [2192]], dtype=object)
+    # tauVec = np.array([64, 256, 333, 667, 1333])
+    # freqBinList = [[51, 57], [13, 14, 15], [10, 12], [0], [0]]
+    # CPLenList = np.array([[16, 8], [64, 32, 16], [128, 36], [72], [144]], dtype=object)
+
     inputLen = 8
     
     CAF_DC = getCAF_DC(inputIQ, tauVec, inputLen)
     nSubC_Est = tauVec[np.argmax(CAF_DC)]
     CAF = getCAF(inputIQ, FFTsize, nSubC_Est, inputLen)
-    symLenEst = symLenList[np.argmax(CAF_DC)][np.argmax(CAF[freqBinList[np.argmax(CAF_DC)]])]
+    CPLenEst = CPLenList[np.argmax(CAF_DC)][np.argmax(CAF[freqBinList[np.argmax(CAF_DC)]])]
 
-    return nSubC_Est, symLenEst
+    return nSubC_Est, CPLenEst
 
 def getCAF_DC(inputIQ, tauVec, CPLen):
     indexMat = np.arange(1, CPLen + 1).reshape(-1, 1) + np.arange(0, len(inputIQ) - CPLen)

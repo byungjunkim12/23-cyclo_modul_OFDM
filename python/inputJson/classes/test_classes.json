@@ -1,0 +1,7 @@
+{
+    "SNRVec": [20],
+    "tauVec": [64, 256, 512, 1024, 2048],
+    "protocolList": ["wlanHT", "wlanHE", "NRDLa", "NRDLb", "NRDLc"],
+    "CPOptList": [["Extended", "Normal"], ["Extended", "Medium", "Normal"], ["Extended", "Normal"], ["Normal"], ["Normal"]],
+    "CPLenList": [[16, 8], [64, 32, 16], [128, 36], [72], [144]]
+}
