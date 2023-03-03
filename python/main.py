@@ -56,13 +56,6 @@ def main():
         fileCount[i] = np.zeros((len(SNRVec), CPOptList[i].shape[0]))
         corrNSubCCount[i] = np.zeros((len(SNRVec), ))
         corrCPLenCount[i] = np.zeros((len(SNRVec), CPOptList[i].shape[0]))
-        if "wlan" in protocol:
-            freqBinList[i] = np.round(nFFT / (CPLenList[i] + tauVec[i])).astype(int)
-        elif "NRDLa" in protocol:
-            freqBinList[i] = np.round(nFFT / (CPLenList[i] + tauVec[i]) * NRDLTXRate / samplingRate).astype(int)
-        else:
-            freqBinList[i] = [0]
-        
         if "NRDL" in protocol:
             tauVec[i] = (tauVec[i] * samplingRate / NRDLTXRate).astype(int)
 
@@ -102,7 +95,7 @@ def main():
                 randStartIndex = random.randint(0, inputIQ.shape[0] - maxInputLen)
                 inputIQ = inputIQ[randStartIndex : randStartIndex + maxInputLen]
 
-            nSubC_Est, CPLenEst = getOFDM_param(inputIQ, tauVec, freqBinList, CPLenList)
+            nSubC_Est, CPLenEst = getOFDM_param(inputIQ, protocolList, tauVec, nFFT, CPLenList)
             firstIndexSym = findFirstIndex(inputIQ, nSubC_Est, CPLenEst)
             CFOest = estCFO(inputIQ, nSubC_Est, CPLenEst, firstIndexSym, samplingRate)
             # print(CFOest)

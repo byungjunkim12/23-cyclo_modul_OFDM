@@ -1,16 +1,25 @@
 import numpy as np
 
-def getOFDM_param(inputIQ, tauVec, freqBinList, CPLenList):
-    FFTsize = 4096
-    # tauVec = np.array([64, 256, 333, 667, 1333])
-    # freqBinList = [[51, 57], [13, 14, 15], [10, 12], [0], [0]]
-    # CPLenList = np.array([[16, 8], [64, 32, 16], [128, 36], [72], [144]], dtype=object)
-
+def getOFDM_param(inputIQ, protocolList, tauVec, nFFT, CPLenList):
+    nFFT = 4096
+    samplingRate = 20e6
+    NRDLTXRate = 30.72e6
     inputLen = 8
+
+    freqBinList = np.zeros((len(protocolList),), dtype=object)
+    for i, protocol in enumerate(protocolList):
+        print(protocol, CPLenList[i], (tauVec[i] + (np.asarray(CPLenList[i]) * samplingRate / NRDLTXRate)))
+        if "wlan" in protocol:
+            freqBinList[i] = np.round(nFFT / (tauVec[i] + CPLenList[i])).astype(int)
+        elif "NRDLa" in protocol:
+            freqBinList[i] = np.round(nFFT / (tauVec[i] + np.asarray(CPLenList[i]) * samplingRate / NRDLTXRate)).astype(int)
+        else:
+            freqBinList[i] = [0]
+    # print(freqBinList)
     
     CAF_DC = getCAF_DC(inputIQ, tauVec, inputLen)
     nSubC_Est = tauVec[np.argmax(CAF_DC)]
-    CAF = getCAF(inputIQ, FFTsize, nSubC_Est, inputLen)
+    CAF = getCAF(inputIQ, nFFT, nSubC_Est, inputLen)
     CPLenEst = CPLenList[np.argmax(CAF_DC)][np.argmax(CAF[freqBinList[np.argmax(CAF_DC)]])]
 
     return nSubC_Est, CPLenEst
