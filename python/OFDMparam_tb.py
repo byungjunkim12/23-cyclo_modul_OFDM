@@ -8,7 +8,7 @@ import time
 import os
 from glob import glob
 
-from util_OFDMparam import *
+from OFDMparam import *
 sys.path.append('../')
 from utilities import *
 
@@ -22,17 +22,17 @@ def main():
 
     inputJsonFile = open("../inputJson/" + inputJsonFileName + ".json")
     classesJsonFile = open("../inputJson/classes/" + classesJsonFileName + ".json")
-    classesJsonContent = json.load(classesJsonFile)
+    classesJson = json.load(classesJsonFile)
 
     dataPath = json.load(inputJsonFile)["data_path"]
 
-    SNRVec = np.asarray(classesJsonContent["SNRVec"])
-    tauVec = np.asarray(classesJsonContent["tauVec"])
-    protocolList = np.asarray(classesJsonContent["protocolList"])
-    CPOptList = np.asarray(classesJsonContent["CPOptList"], dtype=object)
-    for i, CPOptElem in enumerate(CPOptList):
-        CPOptList[i] = np.asarray(CPOptElem, dtype=object)
-    CPLenList = np.asarray(classesJsonContent["CPLenList"], dtype=object)
+    SNRVec = np.asarray(classesJson["SNRVec"])
+    tauVec = np.asarray(classesJson["tauVec"])
+    protocolList = np.asarray(classesJson["protocolList"])
+    CPOptList = np.asarray(classesJson["CPOptList"])
+    for i, CPLenElem in enumerate(CPOptList):
+        CPOptList[i] = np.asarray(CPLenElem, dtype=object)
+    CPLenList = np.asarray(classesJson["CPLenList"], dtype=object)
     
     inputJsonFile.close()
     classesJsonFile.close()
