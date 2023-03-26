@@ -10,9 +10,9 @@ FFTSize = 4096;
 tau_vec = [64, 256, 333, 667, 1333];
 est_len = 8;
 % Nmax = 25;
-freqBinCell = [52, 58]; % wlanHT
+% freqBinCell = [52, 58]; % wlanHT
 % freqBinCell = [14, 15, 16]; % wlanHE
-% freqBinCell = [11, 13];
+freqBinCell = [11, 12]; % NRDLa
 
 %% Load the signal
 corrCount_nSubC = zeros(1, numel(SNRvector));

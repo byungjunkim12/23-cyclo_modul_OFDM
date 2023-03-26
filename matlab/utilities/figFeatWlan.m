@@ -1,4 +1,4 @@
-function figFeat(inputIQ, nSubC, CPlen, firstIndex, nSym, removeNull, angleMod)
+function figFeatWlan(inputIQ, nSubC, CPlen, firstIndex, nSym, removeNull, angleMod)
 % pilotSubC = [23, 49, 91, 117, 141, 167, 209, 235];
 % pilotSubC = [22, 23, 24, 48, 49, 50, 90, 91, 92, 116, 117, 118,...
 %     140, 141, 142, 166, 167, 168, 208, 209, 210, 234, 235, 236];
@@ -48,7 +48,7 @@ xlabel('Real'); ylabel('Imag')
 ax = gca;
 ax.FontSize = 24; 
 f.Position = [600 600 1000 600];
-xlim([0 5]); ylim([0 3])
+% xlim([0 5]); ylim([0 3])
 
 % featInputHist(featInputHist > pi) = featInputHist(featInputHist > pi) - 2*pi;
 % featInputHist(featInputHist < -pi) = featInputHist(featInputHist < -pi) + 2*pi;
