@@ -1,0 +1,6 @@
+preamble length list
+
+wlanHT: 720
+wlanHE_Normal: 1152
+wlanHE_Medium: 1040
+wlanHE_Extended: 1200

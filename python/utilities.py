@@ -2,6 +2,10 @@ import numpy as np
 from scipy.signal import find_peaks
 from datetime import datetime
 
+def getCFOtruth(inputJson):
+    CFOtruth = inputJson['sourceArray'][0]['imperfectionCfg']['freqOffset']
+    return CFOtruth
+
 def getMCS_HEMU(inputJson):
     nUser = len(inputJson['sourceArray'][0]['signalArray']['cfgHEMU']['User'])
     MCS_list = np.zeros((nUser,), dtype=int)
@@ -16,7 +20,7 @@ def findFirstIndex(inputIQ, nSubC, CPLen):
     
     inputCorr = np.sum(inputMat[:, :-nSubC] * np.conj(inputMat[:, nSubC:]), axis=0)
     peaks, pklocs = find_peaks(np.abs(inputCorr), distance=np.floor(0.9*(nSubC+CPLen)))
-    print(np.mod(np.bincount(np.mod(peaks, nSubC+CPLen)).argmax(), nSubC+CPLen))
+    # print(np.mod(np.bincount(np.mod(peaks, nSubC+CPLen)).argmax(), nSubC+CPLen))
     firstIndex = np.mod(np.bincount(np.mod(peaks, nSubC+CPLen)).argmax(), nSubC+CPLen)
 
     return firstIndex
