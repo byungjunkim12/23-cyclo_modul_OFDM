@@ -20,28 +20,28 @@ def main():
     parser.add_argument("-t", "--train", help="train")
     args = parser.parse_args()
     inputJsonFileName = args.inputJson
-    classesJsonFileName = args.classes
+    classJsonFileName = args.classes
     trainFlag = args.train
 
     inputJsonFile = open("./inputJson/" + inputJsonFileName + ".json")
-    classesJsonFile = open("./inputJson/classes/" + classesJsonFileName + ".json")
-    classesJson = json.load(classesJsonFile)
+    classJsonFile = open("./inputJson/class/" + classJsonFileName + ".json")
+    classJson = json.load(classJsonFile)
 
     dataPath = json.load(inputJsonFile)["data_path"]
 
-    SNRVec = np.asarray(classesJson["SNRVec"])
-    tauVec = np.asarray(classesJson["tauVec"])
-    protocolList = np.asarray(classesJson["protocolList"])
-    CPOptList = np.asarray(classesJson["CPOptList"])
+    SNRVec = np.asarray(classJson["SNRVec"])
+    tauVec = np.asarray(classJson["tauVec"])
+    protocolList = np.asarray(classJson["protocolList"])
+    CPOptList = np.asarray(classJson["CPOptList"])
     for i, CPLenElem in enumerate(CPOptList):
         CPOptList[i] = np.asarray(CPLenElem, dtype=object)
-    CPLenList = np.asarray(classesJson["CPLenList"], dtype=object)
+    CPLenList = np.asarray(classJson["CPLenList"], dtype=object)
     
     inputJsonFile.close()
-    classesJsonFile.close()
+    classJsonFile.close()
     
     longestPreambleLen = 1200
-    maxInputLen = 20000
+    maxInputLen = 30000
     wlanHTInputSym = 40
     wlanHEInputSym = 10
     samplingRate = 20e6
@@ -105,8 +105,6 @@ def main():
             resultMat[fileIndex, 3] = firstIndexEst
             resultMat[fileIndex, 5] = estCFO(inputIQ, nSubC_Est, CPLenEst, resultMat[fileIndex, 3], samplingRate)
             inputIQ_CFOcorr = corrCFO(inputIQ, nSubC_Est, CPLenEst, firstIndexEst, samplingRate, 2)
-
-            
 
         print('running time: %0.2f sec' %(time.time() - startTime))
 

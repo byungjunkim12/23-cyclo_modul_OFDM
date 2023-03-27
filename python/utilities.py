@@ -1,6 +1,9 @@
 import numpy as np
 from scipy.signal import find_peaks
 from datetime import datetime
+import torch
+from torch.utils.data import Dataset
+
 
 def getCFOtruth(inputJson):
     CFOtruth = inputJson['sourceArray'][0]['imperfectionCfg']['freqOffset']
@@ -43,4 +46,38 @@ def getTwoDigitStr(input):
     else:
         twoDigitStr = str(input)
     return twoDigitStr
-    
+
+class IQDataset(Dataset):
+    """
+    Dataset for spectrogram processing based on torch Dataset class, used with torch DataLoader class to generate
+    data batches for training neural network
+    """
+    def __init__(self,data_dict,cuda_id=None,normalize=True):
+        self._features = data_dict['input'] # using IQ sample value
+        # self._start = data_dict['start']
+        self._labels = data_dict['label']
+        self._cuda_id = cuda_id
+        self._normalize = normalize
+                
+    def __len__(self):
+        return len(self._labels)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+                        
+        Input = torch.tensor(self._features[idx]).float()  # adding singleton dimension for CNN
+        # Input = torch.tensor(self._features[idx]).unsqueeze(0).float()  # adding singleton dimension for CNN
+        Target = torch.tensor(self._labels[idx]).long()
+        # start = torch.tensor(self._start[idx]).long()
+
+        if self._normalize == True:
+            flattened_input = torch.flatten(Input,start_dim=1)
+            spec_mag = torch.sum(torch.norm(flattened_input,dim=0))
+            Input = Input * flattened_input.size(dim=1) / spec_mag
+            
+        if self._cuda_id is not None:
+            return {"input": Input.cuda(self._cuda_id), "target": Target.cuda(self._cuda_id)}
+
+        else:
+            return {"input": Input, "target": Target}

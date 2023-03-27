@@ -4,14 +4,14 @@ import math
 
 pi = math.pi
 def getModFeat(inputIQ, nSubC, lenCP, firstIndexSym, nSym, removeNull, angleMod):
-    featAbs = np.zeros((nSubC, nSym-1))
-    featPh = np.zeros((nSubC, nSym-1))
+    featAbs = np.zeros((nSubC, nSym))
+    featPh = np.zeros((nSubC, nSym))
     if nSubC == 64:
         nNullSubC = 8
     elif nSubC == 256:
         nNullSubC = 14
 
-    for iSym in range(nSym-1):
+    for iSym in range(nSym):
         symbolsFreq = np.fft.fft(inputIQ[(firstIndexSym+int(lenCP/2) + iSym*(nSubC+lenCP)) :\
             (firstIndexSym+nSubC+int(lenCP/2) + iSym*(nSubC+lenCP))])
         nextSymbolsFreq = np.fft.fft(inputIQ[(firstIndexSym+int(lenCP/2) + (iSym+1)*(nSubC+lenCP)) :\
@@ -32,7 +32,7 @@ def getModFeat(inputIQ, nSubC, lenCP, firstIndexSym, nSym, removeNull, angleMod)
     feat = np.multiply(featAbs, np.exp(1j*featPh))
     if removeNull:
         sortSubC = np.argsort(np.mean(featAbs, axis=1))
-        subCwoNull = sortSubC[nNullSubC + 1:]
+        subCwoNull = sortSubC[nNullSubC:]
         feat = feat[subCwoNull, :]
         
     return feat
