@@ -9,7 +9,7 @@ def getModFeat(inputIQ, nSubC, lenCP, firstIndexSym, nSym, removeNull, angleMod)
     if nSubC == 64:
         nNullSubC = 8
     elif nSubC == 256:
-        nNullSubC = 14
+        nNullSubC = 32
 
     for iSym in range(nSym):
         symbolsFreq = np.fft.fft(inputIQ[(firstIndexSym+int(lenCP/2) + iSym*(nSubC+lenCP)) :\
@@ -25,9 +25,9 @@ def getModFeat(inputIQ, nSubC, lenCP, firstIndexSym, nSym, removeNull, angleMod)
 
         if angleMod:
             featPh[:, iSym] = np.mod(featPh[:, iSym], (pi/2))
-            tempFeatPh = featPh[:, iSym]
-            tempFeatPh[tempFeatPh > pi/4] = pi/2 - tempFeatPh[tempFeatPh > pi/4]
-            featPh[:, iSym] = tempFeatPh
+            # tempFeatPh = featPh[:, iSym]
+            # tempFeatPh[tempFeatPh > pi/4] = pi/2 - tempFeatPh[tempFeatPh > pi/4]
+            # featPh[:, iSym] = tempFeatPh
 
     feat = np.multiply(featAbs, np.exp(1j*featPh))
     if removeNull:

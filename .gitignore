@@ -1,5 +1,6 @@
 *.asv
 *.pyc
 result/
+saveDLModel/
 
 .DS_Store

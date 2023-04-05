@@ -1,0 +1,8 @@
+{
+    "SNRVec": [5, 10, 15, 20, 25, 30, 35, 40],
+    "tauVec": [64, 256],
+    "protocolList": ["wlanHT", "wlanHE"],
+    "CPOptList": [["Extended", "Normal"], ["Extended", "Medium", "Normal"]],
+    "CPLenList": [[16, 8], [64, 32, 16]],
+    "modList": [[2, 4, 16, 64], [2, 4, 16, 64, 256, 1024]]
+}
