@@ -80,13 +80,12 @@ class imgDataset(Dataset):
     data batches for training neural network
     """
 
-    def __init__(self,data_dict,angleMod,testFlag,cuda_id=None,normalize=True):
+    def __init__(self,data_dict,testFlag,cuda_id=None,normalize=True):
         self._features = data_dict['input'] # using IQ sample value
         # self._imgSize = imgSize
         self._labels = data_dict['label']
         self._cuda_id = cuda_id
         self._normalize = normalize
-        self._angleMod = angleMod
         self._testFlag = testFlag
         if self._testFlag:
             self._featuresMod = data_dict['inputMod']
