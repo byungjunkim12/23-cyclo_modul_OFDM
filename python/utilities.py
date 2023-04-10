@@ -14,7 +14,7 @@ def getMCS_HEMU(inputJson):
 
     return MCS_list
 
-def findFirstIndex(inputIQ, nSubC, CPLen):
+def findFirstIndexWifi(inputIQ, nSubC, CPLen):
     indexMat = np.arange(CPLen)[:, np.newaxis] + np.arange(inputIQ.shape[0]-CPLen+1)
     inputMat = inputIQ[indexMat]
     
@@ -24,6 +24,108 @@ def findFirstIndex(inputIQ, nSubC, CPLen):
     firstIndex = np.mod(np.bincount(np.mod(peaks, nSubC+CPLen)).argmax(), nSubC+CPLen)
 
     return firstIndex
+
+def findFirstIndexNR(inputIQ, nSubC, CPLen):
+    dataSamplingRate = 30.72e6
+    lenHalfSubfr = int(0.5e-3 * dataSamplingRate)
+
+    nHalfSubfrInput = np.floor(inputIQ.shape[0]/lenHalfSubfr).astype(int)
+    if nSubC == 512:
+        nSymSlot = 56
+    elif nSubC == 1024:
+        nSymSlot = 28
+    elif nSubC == 2048:
+        nSymSlot = 14
+    nSymInput = int(nSymSlot * nHalfSubfrInput / 2)
+    addInputLen = np.mod(inputIQ.shape[0], lenHalfSubfr)
+    # print(nSymInput, nHalfSlotInput, addInputLen)
+    
+    indexMat = np.arange(CPLen)[:, np.newaxis] + np.arange(inputIQ.shape[0]-CPLen+1)
+    inputMat = inputIQ[indexMat]
+    inputCorr = np.sum(inputMat[:, :-nSubC] * np.conj(inputMat[:, nSubC:]), axis=0)
+
+    if CPLen == 128:
+        peaks = find_peaks(np.abs(inputCorr), distance=np.floor(0.9*(nSubC+CPLen)))[0]
+        firstIndex = np.mod(np.bincount(np.mod(peaks, nSubC+CPLen)).argmax(), nSubC+CPLen)
+        firstSymIndex = None
+    else:
+        pkMat2Flag = False
+
+        pkMat = np.nan*np.zeros((int(nSymInput/nHalfSubfrInput)+2, nHalfSubfrInput))
+        for iSlot in range(nHalfSubfrInput):
+            inputCorrTemp = inputCorr[iSlot*lenHalfSubfr : (iSlot+1)*lenHalfSubfr+addInputLen]
+            peaks = find_peaks(np.abs(inputCorrTemp), distance=np.floor(0.9*(nSubC+CPLen)))[0]
+            # to find peaks whose distance is larger than 90% of the length of a symbol length
+            pkSym = np.floor(peaks / (nSubC+CPLen)).astype(int)
+            pkValidIndices = np.where((pkSym <= int(nSymInput/nHalfSubfrInput)+2) & (pkSym > 0))[0]
+            # to remove peaks that are in the beginning or the end of the input
+            pkMat[pkSym[pkValidIndices]-1, iSlot] = peaks[pkValidIndices]
+            # print('peaks:', peaks, 'pkMat:', pkMat[:, iSlot])
+
+            nanIndex = np.setdiff1d(np.where(np.isnan(pkMat[:, iSlot]))[0], [pkMat.shape[0]-1])
+            nanIndex = np.where(np.isnan(pkMat[:, iSlot]))[0]
+            # print('nan:', nanIndex)
+            pkMat[np.setdiff1d(nanIndex, np.array([int(nSymInput/nHalfSubfrInput)+1]))+1, iSlot] = np.nan;
+            pkMat[np.setdiff1d(nanIndex, np.array([0, int(nSymInput/nHalfSubfrInput)+1]))-1, iSlot] = np.nan;
+        
+        pkMat2 = np.nan*np.zeros((int(nSymInput/nHalfSubfrInput)+2, nHalfSubfrInput))
+        for iSlot in range(nHalfSubfrInput):
+            inputCorrTemp = inputCorr[iSlot*lenHalfSubfr+int((nSubC+CPLen)/2) : (iSlot+1)*lenHalfSubfr+addInputLen+int((nSubC+CPLen)/2)]
+            peaks = find_peaks(np.abs(inputCorrTemp), distance=np.floor(0.9*(nSubC+CPLen)))[0]
+            # to find peaks whose distance is larger than 90% of the length of a symbol length
+            pkSym = np.floor(peaks / (nSubC+CPLen)).astype(int)
+            pkValidIndices = np.where((pkSym <= int(nSymInput/nHalfSubfrInput)+2) & (pkSym > 0))[0]
+            # to remove peaks that are in the beginning or the end of the input
+            pkMat2[pkSym[pkValidIndices]-1, iSlot] = peaks[pkValidIndices]
+            # print('peaks:', peaks, 'pkMat:', pkMat2[:, iSlot])
+
+            nanIndex = np.setdiff1d(np.where(np.isnan(pkMat2[:, iSlot]))[0], [pkMat2.shape[0]-1])
+            nanIndex = np.where(np.isnan(pkMat2[:, iSlot]))[0]
+            # print('nan:', nanIndex)
+            pkMat2[np.setdiff1d(nanIndex, np.array([int(nSymInput/nHalfSubfrInput)+1]))+1, iSlot] = np.nan;
+            pkMat2[np.setdiff1d(nanIndex, np.array([0, int(nSymInput/nHalfSubfrInput)+1]))-1, iSlot] = np.nan;
+
+        # print(pkMat)
+        # print(pkMat2)
+
+        if np.sum(np.isnan(pkMat)) > np.sum(np.isnan(pkMat2)):
+            # print('changed')
+            pkMat = pkMat2
+            pkMat2Flag = True
+
+        pkRem = np.mod(pkMat, nSubC+CPLen)
+        pkRemAvg = np.nanmean(pkRem, axis=1)
+        symOffset = np.floor(np.nanmean(pkMat[0, :]) / (nSubC+CPLen)).astype(int)
+
+        remDiff = np.abs(pkRemAvg[2:] - pkRemAvg[:-2])
+        symIndexCandi = np.argsort(remDiff)[-2:]
+        # print(remDiff, symIndexCandi, symOffset)
+        if (remDiff[symIndexCandi[0]] > 10 and remDiff[symIndexCandi[1]] > 10):
+            minStdIndex = np.argmax(np.nanstd(pkRem[symIndexCandi+1, :], axis=1))
+            firstSymIndex = symIndexCandi[minStdIndex]
+        else:
+            firstSymIndex = symIndexCandi[1]
+        firstSymIndex = np.mod(-(firstSymIndex+symOffset+1), nSymSlot/2).astype(int)
+        
+        symVec = np.arange(pkRemAvg.size)
+        shortSymVec = symVec[np.mod(symVec+firstSymIndex, nSymSlot/2) != 0]
+        
+        pkRemAvg = pkRemAvg - np.floor((symVec+firstSymIndex+symOffset) / (nSymSlot/2)) * 16
+        pkRemAvg = np.mod(pkRemAvg[shortSymVec], nSubC+CPLen)
+        # print(pkRemAvg.astype(int), np.bincount(pkRemAvg.astype(int))[896], np.bincount(pkRemAvg.astype(int))[1078])
+        if np.unique(pkRemAvg).size == np.size(pkRemAvg):
+            firstIndex = np.nanmedian(pkRemAvg).astype(int)
+        else:
+            firstIndex = np.bincount(pkRemAvg.astype(int)).argmax()
+        
+        if pkMat2Flag:
+            if firstIndex > (nSubC+CPLen)/2:
+                firstIndex = (firstIndex - (nSubC+CPLen)/2).astype(int)
+                firstSymIndex = np.mod(firstSymIndex-1, nSymSlot/2).astype(int)
+            else:
+                firstIndex = (firstIndex + (nSubC+CPLen)/2).astype(int)
+
+    return [firstIndex, firstSymIndex]
 
 def getDateYYMMDD_HHMMSS():
     dateTimeNow = datetime.now()
