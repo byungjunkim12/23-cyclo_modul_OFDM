@@ -2,6 +2,37 @@ import numpy as np
 from scipy.signal import find_peaks
 from datetime import datetime
 
+def getChIndexSym(indexNRDL, nSubC, CPLen, iSym):
+    nSymSlot = 14
+    if nSubC == 512 and CPLen == 128:
+        # nSymSlot = 48
+        freqBinSize = 12*24
+    elif nSubC == 512 and CPLen == 36:
+        # nSymSlot = 56
+        freqBinSize = 12*24
+    elif nSubC == 1024:
+        # nSymSlot = 28
+        freqBinSize = 12*51
+    elif nSubC == 2048:
+        # nSymSlot = 14
+        freqBinSize = 12*106
+    iSlot = int(np.floor(iSym/nSymSlot))
+    
+    chIndexSlot = np.union1d(np.union1d(np.union1d(np.union1d(np.union1d(\
+        indexNRDL['indexPDSCH'][iSlot],\
+        indexNRDL['indexPDSCHDMRS'][iSlot]),\
+        indexNRDL['indexPDSCHPTRS'][iSlot]),\
+        indexNRDL['indexPDCCH'][iSlot]),\
+        indexNRDL['indexSSBurst'][iSlot]),\
+        indexNRDL['indexCSIRS'][iSlot])
+    chIndexSym = chIndexSlot[(chIndexSlot > np.mod(iSym, nSymSlot) * freqBinSize) &\
+        (chIndexSlot <= (np.mod(iSym, nSymSlot)+1) * freqBinSize)]
+    return chIndexSym
+
+def getindexNRDL(inputJson):
+    indexNRDL = inputJson['sourceArray'][0]['signalArray']['indexNRDL']
+    return indexNRDL
+
 def getCFOtruth(inputJson):
     CFOtruth = inputJson['sourceArray'][0]['imperfectionCfg']['freqOffset']
     return CFOtruth
@@ -25,12 +56,29 @@ def findFirstIndexWifi(inputIQ, nSubC, CPLen):
 
     return firstIndex
 
+def findTrueFirstIndexNR(inputStartIndex, nSubC, CPLen):
+    inputStartIndexSubfr = inputStartIndex % 15360
+    if inputStartIndexSubfr > 15360 - (nSubC+CPLen):
+        firstSymIndexTruth = 0
+        if inputStartIndexSubfr <= 15360 - (nSubC+CPLen-16):
+            firstIndexTruth = (-inputStartIndexSubfr+32) % (nSubC+CPLen) + (nSubC+CPLen)
+        else:
+            firstIndexTruth = (-inputStartIndexSubfr+32) % (nSubC+CPLen)
+    else:
+        firstIndexTruth = (-inputStartIndexSubfr+16) % (nSubC+CPLen)
+        firstSymIndexTruth = np.ceil((inputStartIndexSubfr-16) / (nSubC+CPLen)).astype(int)
+
+    return firstIndexTruth, firstSymIndexTruth
+
+
 def findFirstIndexNR(inputIQ, nSubC, CPLen):
     dataSamplingRate = 30.72e6
     lenHalfSubfr = int(0.5e-3 * dataSamplingRate)
 
     nHalfSubfrInput = np.floor(inputIQ.shape[0]/lenHalfSubfr).astype(int)
-    if nSubC == 512:
+    if nSubC == 512 and CPLen == 128:
+        nSymSlot = 48
+    elif nSubC == 512 and CPLen == 36:
         nSymSlot = 56
     elif nSubC == 1024:
         nSymSlot = 28
@@ -119,7 +167,10 @@ def findFirstIndexNR(inputIQ, nSubC, CPLen):
             firstIndex = np.bincount(pkRemAvg.astype(int)).argmax()
         
         if pkMat2Flag:
-            if firstIndex > (nSubC+CPLen)/2:
+            # print(firstIndex, firstSymIndex)
+            if firstSymIndex == 0 and firstIndex >= (nSubC+CPLen)/2 and firstIndex < (nSubC+CPLen)/2+16:
+                firstIndex = (firstIndex + (nSubC+CPLen)/2).astype(int)
+            elif firstIndex >= (nSubC+CPLen)/2:
                 firstIndex = (firstIndex - (nSubC+CPLen)/2).astype(int)
                 firstSymIndex = np.mod(firstSymIndex-1, nSymSlot/2).astype(int)
             else:
