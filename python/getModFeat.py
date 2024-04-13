@@ -45,46 +45,39 @@ def getModFeatNR(inputIQ, indexNRDL, nSubC, CPLen, nSym, angleMod, firstIndex, f
     chIndexSym = []
 
     if nSubC == 512 and CPLen == 128:
-        nSymSlot = 48
+        nSymHalfSubfr = 24
         maxnRB = 24
         indexTranMat = [368, 512, 0, 144]
     elif nSubC == 512 and CPLen == 36:
-        nSymSlot = 56
+        nSymHalfSubfr = 28
         maxnRB = 24
         indexTranMat = [368, 512, 0, 144]
     elif nSubC == 1024:
-        nSymSlot = 28
+        nSymHalfSubfr = 14
         maxnRB = 51
         indexTranMat = [718, 1024, 0, 306]
     elif nSubC == 2048:
-        nSymSlot = 14
+        nSymHalfSubfr = 7
         maxnRB = 106
         indexTranMat = [1412, 2048, 0, 636]
     
     freqBinSize = nFreqRB * maxnRB
-    symIndexVec = firstSymIndex + np.arange(nSym+1)
     symLenVec = np.ones((nSym+1, )) * (nSubC + CPLen)
     if CPLen != 128:
-        symLenVec = symLenVec + (np.mod(symIndexVec, (nSymSlot/2)) == 0) * 16
-        longSymVec = np.where(np.mod(symIndexVec, (nSymSlot/2)) == 0)[0]
+        symIndexVec = firstSymIndex + np.arange(nSym+1)
+        symLenVec = symLenVec + (np.mod(symIndexVec, nSymHalfSubfr) == 0) * 16
+        longSymVec = np.where(np.mod(symIndexVec, nSymHalfSubfr) == 0)[0]
         tempCumulIndex = np.concatenate(([0], np.cumsum(symLenVec)))
         addLongCP = (np.arange(16).reshape(16,1) + tempCumulIndex[longSymVec]).reshape(-1,)
         inputCrop = inputIQ[(firstIndex+np.setdiff1d(np.arange(tempCumulIndex[-1]), addLongCP)).astype(int)]
     else:
         inputCrop = inputIQ[(firstIndex+np.arange(symLenVec.sum())).astype(int)]
     
-    lastSymIndex = symIndexVec[-1]
-    for iSym in range(lastSymIndex - firstSymIndex + 1):
-        # print(iSym, getChIndexSym(indexNRDL, nSubC, CPLen, iSym+firstSymIndex).shape)
-        # print(getChIndexSym(indexNRDL, nSubC, CPLen, iSym+firstSymIndex))
+    for iSym in range(nSym + 1):
         chIndexSym.append(np.mod(getChIndexSym(indexNRDL, nSubC, CPLen, iSym+firstSymIndex)-1, freqBinSize).astype(int))
-    
+
     featAbs = np.nan * np.zeros((freqBinSize, nSym))
     featPh = np.nan * np.zeros((freqBinSize, nSym))
-    
-    actSymIndex = -1 * np.ones((freqBinSize, ))
-    # print('chIndexSym[0]', chIndexSym[0])
-    actSymIndex[chIndexSym[0]] = 0
 
     prevSymFreq = np.fft.fft(inputCrop[int(CPLen/2):int(CPLen/2)+nSubC])
     prevSymIndex = np.concatenate((prevSymFreq[indexTranMat[0]:indexTranMat[1]],\
@@ -96,7 +89,9 @@ def getModFeatNR(inputIQ, indexNRDL, nSubC, CPLen, nSym, angleMod, firstIndex, f
     prevSymAbs[chIndexSym[0]] = np.abs(prevSymIndex[chIndexSym[0]])
     prevSymPh[chIndexSym[0]] = np.angle(prevSymIndex[chIndexSym[0]])
 
-    for iSym in range(1, lastSymIndex - firstSymIndex + 1):
+    for iSym in range(1, nSym+1):
+        if CPLen != 128 and np.mod(iSym+firstSymIndex, nSymHalfSubfr) == 0:
+            continue
         currSymFreq = np.fft.fft(inputCrop[int(CPLen/2)+iSym*(nSubC+CPLen):\
             int(CPLen/2)+iSym*(nSubC+CPLen)+nSubC])
         currSymIndex = np.concatenate((currSymFreq[indexTranMat[0]:indexTranMat[1]],\
@@ -110,17 +105,11 @@ def getModFeatNR(inputIQ, indexNRDL, nSubC, CPLen, nSym, angleMod, firstIndex, f
         
         validFeatIndices = np.intersect1d((np.where(~np.isnan(prevSymAbs))[0]),\
                                           (np.where(~np.isnan(currSymAbs))[0]))
-        # print(validFeatIndices + (actSymIndex[validFeatIndices]*freqBinSize).astype(int))
-        featAbs.flat[validFeatIndices + (actSymIndex[validFeatIndices]*freqBinSize).astype(int)] =\
-            np.expand_dims(prevSymAbs[validFeatIndices], axis=1)
-        featPh.flat[validFeatIndices + (actSymIndex[validFeatIndices]*freqBinSize).astype(int)] =\
-            np.expand_dims(currSymPh[validFeatIndices] - prevSymPh[validFeatIndices], axis=1)
-        
-        # replace the current symbol with the previous symbol
-        validInputIndices = np.where(~np.isnan(currSymAbs))[0]
-        prevSymAbs[validInputIndices] = currSymAbs[validInputIndices]
-        prevSymPh[validInputIndices] = currSymPh[validInputIndices]
-        actSymIndex[validInputIndices] = iSym
+        featAbs[validFeatIndices, iSym-1] = prevSymAbs[validFeatIndices]
+        featPh[validFeatIndices, iSym-1] = currSymPh[validFeatIndices] - prevSymPh[validFeatIndices]
+
+        prevSymAbs = currSymAbs
+        prevSymPh = currSymPh
     
     if angleMod:
         featPh = np.mod(featPh, np.pi/2)

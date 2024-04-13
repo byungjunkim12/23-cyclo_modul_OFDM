@@ -4,14 +4,15 @@ def getOFDM_param(inputIQ, protocolList, tauVec, nFFT, CPLenList):
     nFFT = 4096
     samplingRate = 20e6
     NRDLTXRate = 30.72e6
-    inputLen = 8
+    inputLen = 2
 
     freqBinList = np.zeros((len(protocolList),), dtype=object)
     for i, protocol in enumerate(protocolList):
         if "wlan" in protocol:
             freqBinList[i] = np.round(nFFT / (tauVec[i] + CPLenList[i])).astype(int)
         elif "NRDLa" in protocol:
-            freqBinList[i] = np.round(nFFT / (tauVec[i] + np.asarray(CPLenList[i]) * samplingRate / NRDLTXRate)).astype(int)
+            freqBinList[i] = np.round(nFFT / (tauVec[i] + CPLenList[i])).astype(int)
+            # freqBinList[i] = np.round(nFFT / (tauVec[i] + np.asarray(CPLenList[i]) * samplingRate / NRDLTXRate)).astype(int)
         else:
             freqBinList[i] = [0]
     # print(freqBinList)
@@ -41,7 +42,7 @@ def getCAF_DC(inputIQ, tauVec, CPLen):
 def getCAF(inputIQ, FFTsize, tau, CPLen):
     indexMat = np.arange(1, CPLen + 1).reshape(-1, 1) + np.arange(0, len(inputIQ) - CPLen)
     inputMat = inputIQ[indexMat]
-    SpecStep = 7
+    SpecStep = 10
 
     if CPLen == 1:
         inputCorr = inputMat[:-tau] * np.conj(inputMat[tau:])

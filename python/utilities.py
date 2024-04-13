@@ -3,19 +3,18 @@ from scipy.signal import find_peaks
 from datetime import datetime
 
 def getChIndexSym(indexNRDL, nSubC, CPLen, iSym):
-    nSymSlot = 14
     if nSubC == 512 and CPLen == 128:
-        # nSymSlot = 48
         freqBinSize = 12*24
+        nSymSlot = 12
     elif nSubC == 512 and CPLen == 36:
-        # nSymSlot = 56
         freqBinSize = 12*24
+        nSymSlot = 14
     elif nSubC == 1024:
-        # nSymSlot = 28
         freqBinSize = 12*51
+        nSymSlot = 14
     elif nSubC == 2048:
-        # nSymSlot = 14
         freqBinSize = 12*106
+        nSymSlot = 14
     iSlot = int(np.floor(iSym/nSymSlot))
     
     chIndexSlot = np.union1d(np.union1d(np.union1d(np.union1d(np.union1d(\
@@ -29,8 +28,12 @@ def getChIndexSym(indexNRDL, nSubC, CPLen, iSym):
         (chIndexSlot <= (np.mod(iSym, nSymSlot)+1) * freqBinSize)]
     return chIndexSym
 
-def getindexNRDL(inputJson):
-    indexNRDL = inputJson['sourceArray'][0]['signalArray']['indexNRDL']
+def getindexNRDL(inputJson, sourceIndex):
+    if sourceIndex == 0:
+        indexNRDL = inputJson['sourceArray'][9]['signalArray']['indexNRDL']
+    else:
+        indexNRDL = inputJson['sourceArray'][sourceIndex-1]['signalArray']['indexNRDL']
+    # indexNRDL = inputJson['sourceArray'][sourceIndex]['signalArray']['indexNRDL']
     return indexNRDL
 
 def getCFOtruth(inputJson):
@@ -58,15 +61,20 @@ def findFirstIndexWifi(inputIQ, nSubC, CPLen):
 
 def findTrueFirstIndexNR(inputStartIndex, nSubC, CPLen):
     inputStartIndexSubfr = inputStartIndex % 15360
-    if inputStartIndexSubfr > 15360 - (nSubC+CPLen):
-        firstSymIndexTruth = 0
-        if inputStartIndexSubfr <= 15360 - (nSubC+CPLen-16):
-            firstIndexTruth = (-inputStartIndexSubfr+32) % (nSubC+CPLen) + (nSubC+CPLen)
-        else:
-            firstIndexTruth = (-inputStartIndexSubfr+32) % (nSubC+CPLen)
+    if CPLen == 128:
+        firstIndexTruth = (-inputStartIndexSubfr) % (nSubC+CPLen)
+        # firstSymIndexTruth = None
+        firstSymIndexTruth = np.ceil(inputStartIndex / (nSubC+CPLen)).astype(int)
     else:
-        firstIndexTruth = (-inputStartIndexSubfr+16) % (nSubC+CPLen)
-        firstSymIndexTruth = np.ceil((inputStartIndexSubfr-16) / (nSubC+CPLen)).astype(int)
+        if inputStartIndexSubfr > 15360 - (nSubC+CPLen):
+            firstSymIndexTruth = 0
+            if inputStartIndexSubfr <= 15360 - (nSubC+CPLen-16):
+                firstIndexTruth = (-inputStartIndexSubfr+32) % (nSubC+CPLen) + (nSubC+CPLen)
+            else:
+                firstIndexTruth = (-inputStartIndexSubfr+32) % (nSubC+CPLen)
+        else:
+            firstIndexTruth = (-inputStartIndexSubfr + 16) % (nSubC+CPLen)
+            firstSymIndexTruth = np.ceil((inputStartIndexSubfr-16) / (nSubC+CPLen)).astype(int)
 
     return firstIndexTruth, firstSymIndexTruth
 
@@ -118,7 +126,8 @@ def findFirstIndexNR(inputIQ, nSubC, CPLen):
         
         pkMat2 = np.nan*np.zeros((int(nSymInput/nHalfSubfrInput)+2, nHalfSubfrInput))
         for iSlot in range(nHalfSubfrInput):
-            inputCorrTemp = inputCorr[iSlot*lenHalfSubfr+int((nSubC+CPLen)/2) : (iSlot+1)*lenHalfSubfr+addInputLen+int((nSubC+CPLen)/2)]
+            inputCorrTemp = inputCorr[iSlot*lenHalfSubfr+int((nSubC+CPLen)/2) :\
+                                      (iSlot+1)*lenHalfSubfr+addInputLen+int((nSubC+CPLen)/2)]
             peaks = find_peaks(np.abs(inputCorrTemp), distance=np.floor(0.9*(nSubC+CPLen)))[0]
             # to find peaks whose distance is larger than 90% of the length of a symbol length
             pkSym = np.floor(peaks / (nSubC+CPLen)).astype(int)
@@ -147,7 +156,6 @@ def findFirstIndexNR(inputIQ, nSubC, CPLen):
 
         remDiff = np.abs(pkRemAvg[2:] - pkRemAvg[:-2])
         symIndexCandi = np.argsort(remDiff)[-2:]
-        # print(remDiff, symIndexCandi, symOffset)
         if (remDiff[symIndexCandi[0]] > 10 and remDiff[symIndexCandi[1]] > 10):
             minStdIndex = np.argmax(np.nanstd(pkRem[symIndexCandi+1, :], axis=1))
             firstSymIndex = symIndexCandi[minStdIndex]

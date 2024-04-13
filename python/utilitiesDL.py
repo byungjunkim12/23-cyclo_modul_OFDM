@@ -132,7 +132,7 @@ def sphData(audio_input):
     return sph
 
 def imgData(audio_input, imgSize, angleMod):
-    horIndex = np.ceil(np.abs(audio_input) / (np.max(np.abs(audio_input)) / imgSize)).reshape(-1, 1)
+    horIndex = np.ceil(np.abs(audio_input) / (np.nanmax(np.abs(audio_input)) / imgSize)).reshape(-1, 1)
     if angleMod:
         verIndex = np.ceil(np.angle(audio_input) / ((pi/2) / imgSize)).reshape(-1, 1)
     else:
@@ -203,44 +203,6 @@ class wifiPskNet(nn.Module):
         x = self.fc3(x)
         return x
 
-class wifi16QamNet(nn.Module):
-    def __init__(self, nLabel, removeNull):
-        super().__init__()
-        self.nLabel = nLabel
-        self.input_fc = 928
-
-        self.conv1 = nn.Conv2d(2, 4, 2)
-        self.conv2 = nn.Conv2d(4, 8, 2)
-        self.conv3 = nn.Conv2d(8, 16, 2)
-        self.conv4 = nn.Conv2d(16, 32, 2)
-        if removeNull:
-            self.input_fc = 12288
-        else:
-            self.input_fc = 448
-
-        self.fc1 = nn.Linear(self.input_fc, 2400)
-        self.fc2 = nn.Linear(2400, 84)
-        self.fc3 = nn.Linear(84, self.nLabel)
-        self.pool = nn.MaxPool2d(2, 2)
-
-    def forward(self, x):
-        # print(x.shape[0])
-        if x.shape[0] == 1:
-            x = torch.unsqueeze(torch.squeeze(self.pool(F.relu(self.conv1(x)))), 0)
-            x = torch.unsqueeze(torch.squeeze(F.relu(self.conv2(x))), 0)
-            x = torch.unsqueeze(torch.squeeze(F.relu(self.conv3(x))), 0)
-            x = torch.unsqueeze(torch.squeeze(F.relu(self.conv4(x))), 0)
-        else:
-            x = torch.squeeze(self.pool(F.relu(self.conv1(x))))
-            x = torch.squeeze(F.relu(self.conv2(x)))
-            x = torch.squeeze(F.relu(self.conv3(x)))
-            x = torch.squeeze(F.relu(self.conv4(x)))
-        
-        x = torch.flatten(x, 1) # flatten all dimensions except batch
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
 
 class wifiImgPskNet(nn.Module):
     def __init__(self, nLabel, removeNull):
@@ -324,6 +286,87 @@ class wifiImgQamNet(nn.Module):
         x = self.fc3(x)
         return x
 
+
+class NRImgNet(nn.Module):
+    def __init__(self, nLabel, removeNull):
+        super().__init__()
+        self.nLabel = nLabel
+        self.input_fc = 928
+
+        self.conv1 = nn.Conv2d(1, 2, 2)
+        self.conv2 = nn.Conv2d(2, 4, 2)
+        self.conv3 = nn.Conv2d(4, 8, 2)
+        self.conv4 = nn.Conv2d(8, 16, 2)
+        if removeNull:
+            self.input_fc = 1600
+            # self.input_fc = 1296
+        else:
+            self.input_fc = 448
+
+        self.fc1 = nn.Linear(self.input_fc, 1200)
+        self.fc2 = nn.Linear(1200, 84)
+        self.fc3 = nn.Linear(84, self.nLabel)
+        self.pool = nn.MaxPool2d(2, 2)
+
+    def forward(self, x):
+        # print(x.shape[0])
+        if x.shape[0] == 1:
+            x = torch.unsqueeze(torch.squeeze(self.pool(F.relu(self.conv1(x)))), 0)
+            x = torch.unsqueeze(torch.squeeze(self.pool(F.relu(self.conv2(x)))), 0)
+            x = torch.unsqueeze(torch.squeeze(self.pool(F.relu(self.conv3(x)))), 0)
+            x = torch.unsqueeze(torch.squeeze(F.relu(self.conv4(x))), 0)
+        else:
+            x = torch.squeeze(self.pool(F.relu(self.conv1(x))))
+            x = torch.squeeze(self.pool(F.relu(self.conv2(x))))
+            x = torch.squeeze(self.pool(F.relu(self.conv3(x))))
+            x = torch.squeeze(F.relu(self.conv4(x)))
+        
+        x = torch.flatten(x, 1) # flatten all dimensions except batch
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+
+class wifiSeqNet(nn.Module):
+    def __init__(self, nLabel, removeNull):
+        super().__init__()
+        self.nLabel = nLabel
+        self.input_fc = 928
+
+        self.conv1 = nn.Conv2d(2, 4, 2)
+        self.conv2 = nn.Conv2d(4, 8, 2)
+        self.conv3 = nn.Conv2d(8, 16, 2)
+        self.conv4 = nn.Conv2d(16, 32, 2)
+        if removeNull:
+            self.input_fc = 2464
+            # self.input_fc = 288
+        else:
+            self.input_fc = 448
+
+        self.fc1 = nn.Linear(self.input_fc, 1200)
+        self.fc2 = nn.Linear(1200, 84)
+        self.fc3 = nn.Linear(84, self.nLabel)
+        self.pool = nn.MaxPool2d(2, 2)
+
+    def forward(self, x):
+        # print(x.shape[0])
+        if x.shape[0] == 1:
+            x = torch.unsqueeze(torch.squeeze(self.pool(F.relu(self.conv1(x)))), 0)
+            x = torch.unsqueeze(torch.squeeze(self.pool(F.relu(self.conv2(x)))), 0)
+            x = torch.unsqueeze(torch.squeeze(F.relu(self.conv3(x))), 0)
+            x = torch.unsqueeze(torch.squeeze(F.relu(self.conv4(x))), 0)
+        else:
+            x = torch.squeeze(self.pool(F.relu(self.conv1(x))))
+            x = torch.squeeze(self.pool(F.relu(self.conv2(x))))
+            x = torch.squeeze(F.relu(self.conv3(x)))
+            x = torch.squeeze(F.relu(self.conv4(x)))
+        
+        x = torch.flatten(x, 1) # flatten all dimensions except batch
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
 
 def getAcc(loader, model):
     '''
